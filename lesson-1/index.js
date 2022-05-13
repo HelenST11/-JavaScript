@@ -9,17 +9,14 @@ const BASE_URL = 'https://raw.githubusercontent.com/GeekBrainsTutorial/online-st
 const GET_GOODS_ITEMS = `${BASE_URL}catalogData.json`
 const GET_BASKET_GOODS_ITEMS = `${BASE_URL}getBasket.json`
 
-function service(url, callback) {
-    xhr = new XMLHttpRequest();
-    xhr.open('GET', url);
-    xhr.send()
-    xhr.onload = () => {
-        callback(JSON.parse(xhr.response))
-    }
+function service(url) {
+    return fetch(url)
+        .then((res) => res.json())
+
 }
 
 class GoodsItem {
-    constructor({ product_name, price = 0 }) {
+    constructor({ product_name, price }) {
         this.product_name = product_name;
         this.price = price;
     }
@@ -33,22 +30,29 @@ class GoodsItem {
 }
 
 class GoodsList {
-    list = [];
-    fetchGoods(callback) {
-        service(GET_GOODS_ITEMS, (data) => {
-            this.list = data;
-            callback()
+    items = [];
+    filteredItems = []
+    fetchGoods() {
+        return service(GET_GOODS_ITEMS).then((data) => {
+            this.items = data;
+            this.filteredItems = data;
+        })
+    }
+
+    filteredItems(value) {
+        this.filteredItems = this.items.filter(({ product_name }) => {
+            return product_name.match(new RegExp(value, 'gui'))
         })
     }
 
     calculatePrice() {
-        return this.list.reduce((prev, { price }) => {
+        return this.items.reduce((prev, { price }) => {
             return prev + price
         }, 0)
     }
 
     render() {
-        let goodsList = this.list.map(item => {
+        let goodsList = this.items.map(item => {
             const goodsItem = new GoodsItem(item);
             return goodsItem.render()
         }).join('');
@@ -57,19 +61,19 @@ class GoodsList {
 }
 
 class BasketGoodsList {
-    list = [];
+    items = [];
     fetchGoods() {
         service(GET_BASKET_GOODS_ITEMS, (data) => {
-            this.list = data.contents;
+            this.items = data.contents;
         })
     }
 }
 
 
 const goodsList = new GoodsList();
-goodsList.fetchGoods(() => {
+goodsList.fetchGoods().then(() => {
     goodsList.render();
-});
+})
 
 const basketGoodsList = new BasketGoodsList()
 basketGoodsList.fetchGoods();
